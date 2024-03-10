@@ -3,7 +3,7 @@
 import requests
 import logging
 
-from odoo import api, models
+from odoo import api, models, tools, _
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
@@ -29,12 +29,22 @@ class GeoCoder(models.AbstractModel):
         try:
             if result['count'] == 0:
                 return None
-            if result['status'] != 1:
+            if result['status'] != '1':
                 _logger.debug('Invalid Amap call: %s', result['info'])
                 error_msg = 'Unable to geolocate, received the error:\n%s' % result['info']
                 raise UserError(error_msg)
             location = result['geocodes'][0]['location']
             lng, lat = location.split(',')
-            return float(lat, lng)
+            return float(lat), float(lng)
         except (KeyError, ValueError):
             _logger.debug('Unexcepted Amap API answer.')
+
+    @api.model
+    def _geo_query_address_amap(self, street=None, zip=None, city=None, state=None, country=None):
+        address_list = [
+            state,
+            city,
+            street
+        ]
+        address_list = [item for item in address_list if item]
+        return tools.ustr(''.join(address_list))
