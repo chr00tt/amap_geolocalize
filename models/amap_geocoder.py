@@ -27,12 +27,15 @@ class GeoCoder(models.AbstractModel):
             self._raise_query_error(e)
 
         try:
-            if result['count'] == 0:
-                return None
             if result['status'] != '1':
                 _logger.debug('Invalid Amap call: %s', result['info'])
-                error_msg = 'Unable to geolocate, received the error:\n%s' % result['info']
+                if result['info'] == 'ENGINE_RESPONSE_DATA_ERROR' and result['infocode'].startswith('300'):
+                    error_msg = '服务响应失败，请确认地址正确。注：高德地图只支持中文国内地址。'
+                else:
+                    error_msg = 'Unable to geolocate, received the error:\n%s' % result['info']
                 raise UserError(error_msg)
+            if result['count'] == 0:
+                return None
             location = result['geocodes'][0]['location']
             lng, lat = location.split(',')
             return float(lat), float(lng)
